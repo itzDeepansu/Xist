@@ -22,7 +22,7 @@ const getBase64 = (img, callback) => {
   reader.readAsDataURL(img);
 };
 
-export default function signup() {
+const Signup = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -87,12 +87,12 @@ export default function signup() {
     }
   };
 
-  if (submitting){
+  if (submitting) {
     return (
       <div className="bg-black flex justify-center items-center h-[100vh] w-[100vw]">
         <CircleLoader color="#ffffff" loading={submitting} size={400} />
       </div>
-    )
+    );
   }
 
   return (
@@ -189,4 +189,6 @@ export default function signup() {
       </div>
     </div>
   );
-}
+};
+
+export default Signup;
