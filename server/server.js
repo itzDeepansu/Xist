@@ -3,7 +3,7 @@ const axios = require("axios");
 try {
   const io = require("socket.io")(3000, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: '*',
       methods: ["GET", "POST"],
       credentials: true,
     },
