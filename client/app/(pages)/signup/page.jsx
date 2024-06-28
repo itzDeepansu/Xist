@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
-import { message, Upload } from "antd";
+import { Upload } from "antd";
 import axios from "@/features/axios.js";
 
 import Image from "next/image";
@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 
 import { useForm } from "react-hook-form";
 
+import { CircleLoader } from "react-spinners";
+
 const getBase64 = (img, callback) => {
   const reader = new FileReader();
   reader.addEventListener("load", () => callback(reader.result));
@@ -21,13 +23,15 @@ const getBase64 = (img, callback) => {
 };
 
 export default function signup() {
+  const [submitting, setSubmitting] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState();
-  const[finalImgUrl , setFinalImgUrl] = useState();
+  const [finalImgUrl, setFinalImgUrl] = useState();
 
   const { register, handleSubmit } = useForm();
 
-  const router = useRouter()
+  const router = useRouter();
 
   const handleChange = (info) => {
     if (info.file.status === "uploading") {
@@ -66,16 +70,30 @@ export default function signup() {
     </button>
   );
 
-  const onSubmit = async(data) => {
-    try{
-      const res=await axios.post('user/createuser',{...data,image:finalImgUrl});
-      if(res.data.status===200){
-        router.push('/login')
+  const onSubmit = async (data) => {
+    setSubmitting(true);
+    try {
+      const res = await axios.post("user/createuser", {
+        ...data,
+        image: finalImgUrl,
+      });
+      if (res.data.status === 200) {
+        setSubmitting(false);
+        router.push("/login");
       }
-    }catch(err){
+    } catch (err) {
+      setSubmitting(false);
       console.log(err);
     }
   };
+
+  if (submitting){
+    return (
+      <div className="bg-black flex justify-center items-center h-[100vh] w-[100vw]">
+        <CircleLoader color="#ffffff" loading={submitting} size={400} />
+      </div>
+    )
+  }
 
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[100vh] bg-[#171717] text-white">
@@ -149,7 +167,7 @@ export default function signup() {
               type="submit"
               className="w-full bg-white text-black hover:text-white rounded-[3px]"
             >
-              Login
+              Sign Up
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">

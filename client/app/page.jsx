@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ChatCard from "@/components/ChatCard";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +10,8 @@ import axios from "@/features/axios";
 import { io } from "socket.io-client";
 import { nanoid } from "nanoid";
 
+import { useRouter } from "next/navigation";
+
 import {
   Popover,
   PopoverContent,
@@ -17,18 +19,24 @@ import {
 } from "@/components/ui/popover";
 
 import MageDots from "@/components/ui/MageDots";
-import Sent from "@/components/ui/Sent";
 import { useSession, signOut } from "next-auth/react";
 
 export default function Home() {
+  const router = useRouter();
   const socket = useMemo(() => io(`${process.env.BACKEND_URL}`), []);
+
   const [profile, setProfile] = useState(null);
+
   const [chats, setChats] = useState([]);
+  const [searchList, setSearchList] = useState([]);
+
   const [activeChat, setActiveChat] = useState(null);
+
   const [message, setMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
-  const [searchList, setSearchList] = useState([]);
-  let oldDate = new Date();
+  const [chatLoading, setChatLoading] = useState(false);
+
+  let oldDate = "";
 
   const { data: session } = useSession();
 
@@ -39,20 +47,36 @@ export default function Home() {
       const getUsers = await axios.get("user/getusers");
       setChats(getUsers.data.users);
       setSearchList(getUsers.data.users);
-      console.log(`${process.env.BACKEND_URL}`);
     }
     getUserData();
-    socket.on("connect", () => {
+    if (!session?.user) {
+      router.push("/login");
+    }
+    socket.on("connect", async () => {
+      try {
+        await axios.post("user/setsocketid", {
+          phoneNumber: session?.user.phoneNumber,
+          socketID: socket.id,
+        });
+      } catch (err) {
+        console.log("error setting socket id");
+      }
       socket.emit("sendSocketID", {
-        phoneNumber: localStorage.getItem("user"),
+        phoneNumber: session?.user.phoneNumber,
         socketID: socket.id,
       });
       console.log(socket.id);
     });
-
-    return () => {
+    return async () => {
       socket.disconnect();
       console.log("called disconnect");
+      // try {
+      //   axios.post("user/setoffline", {
+      //     phoneNumber: session?.user.phoneNumber,
+      //   });
+      // } catch (err) {
+      //   console.log("error setting user offline");
+      // }
     };
   }, []);
   useEffect(() => {
@@ -67,32 +91,21 @@ export default function Home() {
   }, [activeChat]);
 
   function updateDate(dateString) {
-    oldDate = convertToIST(dateString).date;
+    oldDate = getDate(dateString);
   }
-  function convertToIST(isoString) {
-    // Parse the ISO string to a Date object
-    const dateObj = new Date(isoString);
-
-    // Convert to IST (UTC+5:30)
-    const offsetIST = 5.5 * 60; // IST offset in minutes
-    const istDateObj = new Date(dateObj.getTime() + offsetIST * 60 * 1000);
-
-    // Extract date
-    const date = istDateObj.toISOString().split("T")[0];
-
-    // Extract time and convert to 12-hour format
-    let hours = istDateObj.getHours();
-    const minutes = istDateObj.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-
-    // Format time with leading zeros
-    const formattedTime = `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")} ${ampm}`;
-
-    return { date, time: formattedTime };
+  function getDate(dateString) {
+    var date = new Date(dateString);
+    var day = date.getDate().toString();
+    var month = (date.getMonth() + 1).toString();
+    var year = date.getFullYear().toString();
+    const fullDate = day.concat("-", month).concat("-", year);
+    return fullDate;
+  }
+  function getTime(dateString) {
+    var date = new Date(dateString);
+    var hours = date.getHours().toString();
+    var minutes = date.getMinutes().toString();
+    return hours.concat(":", minutes);
   }
   const handleSendMessage = async () => {
     const msg = await axios.post("message/send", {
@@ -102,6 +115,7 @@ export default function Home() {
     });
     socket.emit("sendMessage", {
       id: msg.data.message.id,
+      timeSent: msg.data.message.timeSent,
       sender: profile?.socketID,
       receiver: activeChat?.socketID,
       senderId: profile?.id,
@@ -127,6 +141,7 @@ export default function Home() {
     });
   };
   const handleActiveChatSet = async (user) => {
+    setChatLoading(true);
     const data = await axios.post("user/getuser", {
       phoneNumber: user.phoneNumber,
     });
@@ -136,6 +151,9 @@ export default function Home() {
       recieverId: data.data.user.id,
     });
     setMessageList(oldMessages.data.messages.reverse());
+    setTimeout(() => {
+      setChatLoading(false);
+    }, 1000);
   };
   const handleInputChange = (e) => {
     setSearchList(
@@ -149,23 +167,31 @@ export default function Home() {
     <main className="flex flex-col bg-[#171717] text-[#FAFAFA]">
       <div className="h-[10vh] flex flex-row">
         <div className="w-1/5 flex flex-row items-center gap-5 border-[#27272A] border-b border-r px-3">
-          <img src={profile?.image} className="rounded-full h-14 w-14 object-cover bg-center" />
+          <img
+            src={profile?.image}
+            className="rounded-full h-14 w-14 object-cover bg-center"
+          />
           {profile?.name}
         </div>
         <div className="w-4/5 border-[#27272A] border-b px-2">
           <div className="w-full h-[10vh] flex flex-row items-center relative gap-5 transition-all">
-            <img src={activeChat?.image} className="h-16 w-16 rounded-full" />
+            <img
+              src={activeChat?.image}
+              className={
+                activeChat == null ? "hidden" : "h-16 w-16 rounded-full"
+              }
+            />
             <div>{activeChat?.name}</div>
             <div
               className={
                 activeChat?.onlineStatus === true
                   ? "bg-green-400 h-3 w-3 rounded-full"
-                  : "bg-red-500 h-3 w-3 rounded-full"
+                  : "hidden"
               }
             ></div>
             <Button
               className="absolute right-4 bg-[#27272A]"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => signOut({ callbackUrl: "/login" })}
             >
               Logout
             </Button>
@@ -196,44 +222,76 @@ export default function Home() {
         </div>
         <div className=" w-4/5 h-[90vh] flex flex-col relative">
           <div className="w-full h-[80vh] flex flex-col-reverse overflow-y-auto relative gap-2 px-4 pt-2">
-            {messageList?.map((message) => (
-              <div
-                key={nanoid()}
-                className={
-                  message.senderId === profile?.id
-                    ? "ml-auto px-4 py-2 flex gap-2 bg-[#292727] rounded-[6px]"
-                    : "mr-auto px-4 py-2 flex gap-2 bg-[#292727] rounded-[6px]"
-                }
-              >
-                {convertToIST(message.timeSent).date != oldDate && (
-                  <div className="text-xs absolute left-[48%]">
-                    {convertToIST(message.timeSent).date}
-                    {updateDate(message.timeSent)}
-                  </div>
-                )}
-                {message.messageContent}
-                <div className="text-[0.625rem] mt-auto">
-                  {convertToIST(message.timeSent).time}
-                </div>
-                {message.senderId == profile?.id && (
-                  <Popover>
-                    <PopoverTrigger>
-                      <MageDots icon="mage:dots" width="20" height="20" />
-                    </PopoverTrigger>
-                    <PopoverContent className="flex flex-col gap-1 bg-[#27272A] rounded-[4px] text-white">
-                      <Button variant="outline" className="hover:bg-black">Edit</Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => triggerMessageDelete(message)}
-                        className="hover:bg-black"
-                      >
-                        Delete
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
-                )}
+            {chatLoading ? (
+              <div class="max-w-full animate-pulse">
+                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
+                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
+                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
+                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+                <span class="sr-only">Loading...</span>
               </div>
-            ))}
+            ) : (
+              messageList?.map((message) => (
+                <div
+                  key={nanoid()}
+                  className={
+                    message.senderId === profile?.id
+                      ? "ml-auto px-4 py-2 flex gap-2 bg-[#292727] rounded-[6px]"
+                      : "mr-auto px-4 py-2 flex gap-2 bg-[#292727] rounded-[6px]"
+                  }
+                >
+                  {getDate(message.timeSent) != oldDate && (
+                    <div className="text-xs absolute left-[48%]">
+                      {getDate(message.timeSent)}
+                      {updateDate(message.timeSent)}
+                    </div>
+                  )}
+                  {message.messageContent}
+                  <div className="text-[0.625rem] mt-auto">
+                    {getTime(message.timeSent)}
+                  </div>
+                  {message.senderId == profile?.id && (
+                    <Popover>
+                      <PopoverTrigger>
+                        <MageDots icon="mage:dots" width="20" height="20" />
+                      </PopoverTrigger>
+                      <PopoverContent className="flex flex-col gap-1 bg-[#27272A] rounded-[4px] text-white">
+                        <Button variant="outline" className="hover:bg-black">
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => triggerMessageDelete(message)}
+                          className="hover:bg-black"
+                        >
+                          Delete
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              ))
+            )}
           </div>
           <div className="flex w-full items-center space-x-2 absolute bottom-0 p-5">
             <Input
