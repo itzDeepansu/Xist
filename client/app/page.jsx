@@ -23,16 +23,7 @@ import { useSession, signOut } from "next-auth/react";
 
 export default function Home() {
   const router = useRouter();
-  const socket = useMemo(
-    () =>
-      io(`${process.env.BACKEND_URL}`, {
-        withCredentials: true,
-        extraHeaders: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      }),
-    []
-  );
+  const socket = useMemo(() => io(`${process.env.BACKEND_URL}`), []);
   console.log(`${process.env.BACKEND_URL}`);
 
   const [profile, setProfile] = useState(null);
