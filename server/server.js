@@ -1,6 +1,6 @@
 require("dotenv").config();
 const axios = require("axios");
-const io = require("socket.io")(3000, {
+const io = require("socket.io")("https://xist-backend.vercel.app", {
   cors: {
     origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST"],
