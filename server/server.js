@@ -1,25 +1,16 @@
 require("dotenv").config();
 const axios = require("axios");
-const io = require("socket.io")("https://xist-backend.vercel.app", {
+const io = require("socket.io")(`${process.env.BACKEND_URL}`, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: '*',
     methods: ["GET", "POST"],
     credentials: true,
-    allowedHeaders: ["Access-Control-Allow-Origin"],
   },
 });
 let sidMap = new Map();
 io.on("connection", (socket) => {
   console.log("User Connected", socket.id);
   socket.on("sendSocketID", (data) => {
-    // try {
-    //   axios.post(`${process.env.API_URL}user/setsocketid`, {
-    //     phoneNumber: data.phoneNumber,
-    //     socketID: data.socketID,
-    //   });
-    // } catch (err) {
-    //   console.log("error at setting socket id");
-    // }
     sidMap.set(socket.id, data.phoneNumber);
   });
 
