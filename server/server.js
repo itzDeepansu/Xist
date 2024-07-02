@@ -1,11 +1,11 @@
 require("dotenv").config();
-
 const axios = require("axios");
 const io = require("socket.io")(3000, {
   cors: {
     origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST"],
     credentials: true,
+    allowedHeaders: ["Access-Control-Allow-Origin"],
   },
 });
 let sidMap = new Map();
