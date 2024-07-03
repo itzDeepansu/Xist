@@ -35,6 +35,7 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
+  const [messageSending , setMessageSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
 
   let oldDate = "";
@@ -109,8 +110,11 @@ export default function Home() {
     return hours.concat(":", minutes);
   }
   const handleSendMessage = async () => {
+    setMessageSending(true);
+    const store = message;
+    setMessage(" ");
     const msg = await axios.post("message/send", {
-      messageContent: message,
+      messageContent: store,
       senderId: profile?.id,
       recieverId: activeChat?.id,
     });
@@ -121,7 +125,7 @@ export default function Home() {
       receiver: activeChat?.socketID,
       senderId: profile?.id,
       recieverId: activeChat?.id,
-      messageContent: message,
+      messageContent: msg.messageContent,
     });
     setMessageList((prev) => [
       {
@@ -130,7 +134,7 @@ export default function Home() {
       },
       ...prev,
     ]);
-    setMessage(" ");
+    setMessageSending(false);
   };
   const triggerMessageDelete = (message) => {
     console.log(message);
@@ -172,7 +176,7 @@ export default function Home() {
             src={profile?.image}
             className="rounded-full h-14 w-14 object-cover bg-center"
           />
-          {profile?.name}
+          <span className="hidden lg:block">{profile?.name}</span>
         </div>
         <div className="w-4/5 border-[#27272A] border-b px-2">
           <div className="w-full h-[10vh] flex flex-row items-center relative gap-5 transition-all">
@@ -222,34 +226,34 @@ export default function Home() {
           </ScrollArea>
         </div>
         <div className=" w-4/5 h-[90vh] flex flex-col relative">
-          <div className="w-full h-[80vh] flex flex-col-reverse overflow-y-auto relative gap-2 px-4 pt-2">
+          <div className="w-full h-[80vh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
             {chatLoading ? (
-              <div class="max-w-full animate-pulse">
-                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
-                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
-                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
-                <div class="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
-                <div class="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
-                <span class="sr-only">Loading...</span>
+              <div className="max-w-full animate-pulse">
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 my-4"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] ml-auto"></div>
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[330px] mb-2.5"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[300px] mb-2.5 ml-auto"></div>
+                <div className="h-2 bg-gray-200 rounded-full dark:bg-gray-700 max-w-[360px]"></div>
+                <span className="sr-only">Loading...</span>
               </div>
             ) : (
               messageList?.map((message) => (
@@ -262,7 +266,7 @@ export default function Home() {
                   }
                 >
                   {getDate(message.timeSent) != oldDate && (
-                    <div className="text-xs absolute left-[48%]">
+                    <div className="text-xs hidden lg:block absolute left-[48%]">
                       {getDate(message.timeSent)}
                       {updateDate(message.timeSent)}
                     </div>
@@ -277,7 +281,7 @@ export default function Home() {
                         <MageDots icon="mage:dots" width="20" height="20" />
                       </PopoverTrigger>
                       <PopoverContent className="flex flex-col gap-1 bg-[#27272A] rounded-[4px] text-white">
-                        <Button variant="outline" className="hover:bg-black">
+                        <Button variant="outline" disabled className="hover:bg-black">
                           Edit
                         </Button>
                         <Button
@@ -294,7 +298,7 @@ export default function Home() {
               ))
             )}
           </div>
-          <div className="flex w-full items-center space-x-2 absolute bottom-0 p-5">
+          <div className={activeChat==null ? "hidden" : "flex w-full items-center space-x-2 absolute bottom-0 p-5" }>
             <Input
               type="text"
               placeholder="Message"
@@ -306,6 +310,7 @@ export default function Home() {
               type="submit"
               variant="outline"
               onClick={handleSendMessage}
+              disabled={messageSending}
               className="rounded-[3px] border-[#27272A] border text-black bg-[#FAFAFA]"
             >
               Send

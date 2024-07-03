@@ -96,7 +96,7 @@ const Signup = () => {
   }
 
   return (
-    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[100vh] bg-[#171717] text-white">
+    <div className="w-full min-h-[100vh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
       <div className="flex items-center justify-center py-12">
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -178,13 +178,11 @@ const Signup = () => {
           </div>
         </form>
       </div>
-      <div className="bg-muted lg:block">
-        <Image
+      <div className="bg-muted w-1/2 h-[12vh] lg:h-[100vh]">
+        <img
           src="/next.svg"
-          alt="Image"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover invert"
+          alt="logo"
+          className="-translate-x-3 xl:translate-x-44 h-full w-full invert object-cover"
         />
       </div>
     </div>
