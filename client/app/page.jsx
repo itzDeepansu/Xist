@@ -226,7 +226,7 @@ export default function Home() {
           </ScrollArea>
         </div>
         <div className=" w-4/5 h-[90vh] flex flex-col relative">
-          <div className="w-full h-[80vh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
+          <div className="w-full h-[80%] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
             {chatLoading ? (
               <div className="max-w-full animate-pulse">
                 <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
@@ -298,7 +298,7 @@ export default function Home() {
               ))
             )}
           </div>
-          <div className={activeChat==null ? "hidden" : "flex w-full items-center space-x-2 absolute bottom-0 p-5" }>
+          <div className={activeChat==null ? "hidden" : "h-[20%] flex w-full items-center space-x-2 p-5" }>
             <Input
               type="text"
               placeholder="Message"
