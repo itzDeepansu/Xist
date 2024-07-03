@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { CircleLoader } from "react-spinners";
@@ -39,7 +38,7 @@ const Login = () => {
 
   return (
     <div className="w-full min-h-[100vh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
-      <div className=" w-1/2 flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-12">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="mx-auto grid w-[350px] gap-6"
