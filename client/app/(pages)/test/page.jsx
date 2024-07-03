@@ -1,6 +1,6 @@
 import React from 'react'
 
-const route = () => {
+const Test = () => {
   return (
     <div className='h-[100vh] w-[100vw] bg-red-300'>
       fsdf
@@ -8,4 +8,4 @@ const route = () => {
   )
 }
 
-export default route
+export default Test
