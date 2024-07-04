@@ -202,7 +202,7 @@ export default function Home() {
         </div>
       </div>
       <div className="flex flex-row">
-        <div className="flex flex-col h-[80vh] lg:h-[90vh] w-1/5 px-2 border-[#27272A] border-r">
+        <div className="flex flex-col h-[90dvh] w-1/5 px-2 border-[#27272A] border-r">
           <Input
             onChange={(e) => handleInputChange(e)}
             placeholder="Search"
@@ -223,8 +223,8 @@ export default function Home() {
             )}
           </ScrollArea>
         </div>
-        <div className=" w-4/5 h-[85vh] lg:h-[90vh] flex flex-col relative">
-          <div className="w-full h-[70vh] lg:h-[80vh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
+        <div className=" w-4/5 h-[90dvh] flex flex-col relative">
+          <div className="w-full h-[80dvh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
             {chatLoading ? (
               <div className="max-w-full animate-pulse">
                 <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>

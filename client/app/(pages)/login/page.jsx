@@ -37,7 +37,7 @@ const Login = () => {
   }
 
   return (
-    <div className="w-full min-h-[100vh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
+    <div className="w-full min-h-[100dvh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
       <div className="flex items-center justify-center py-12">
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -94,7 +94,7 @@ const Login = () => {
           </div>
         </form>
       </div>
-      <div className="w-1/2 h-[12vh] lg:h-[100vh]">
+      <div className="w-1/2 h-[12vh] lg:h-[100dvh]">
       <img src="/next.svg" alt="logo" className="-translate-x-3 xl:translate-x-44 h-full w-full invert object-cover"/>
       </div>
     </div>
