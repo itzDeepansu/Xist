@@ -223,7 +223,7 @@ export default function Home() {
             )}
           </ScrollArea>
         </div>
-        <div className=" w-4/5 h-[80vh] lg:h-[90vh] flex flex-col relative">
+        <div className=" w-4/5 h-[85vh] lg:h-[90vh] flex flex-col relative">
           <div className="w-full h-[70vh] lg:h-[80vh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2">
             {chatLoading ? (
               <div className="max-w-full animate-pulse">
