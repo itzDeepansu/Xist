@@ -94,8 +94,8 @@ const Login = () => {
           </div>
         </form>
       </div>
-      <div className="bg-muted w-1/2 h-[25vh] lg:h-[100vh]">
-      <img src="/next.svg" alt="logo"  className="-translate-x-6 h-full w-full invert object-cover"/>
+      <div className="w-1/2 h-[12vh] lg:h-[100vh]">
+      <img src="/next.svg" alt="logo" className="-translate-x-6 xl:translate-x-44 h-full w-full invert object-cover"/>
       </div>
     </div>
   );
