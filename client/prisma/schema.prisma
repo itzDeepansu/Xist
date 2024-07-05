@@ -9,28 +9,31 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+  directUrl = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
 }
 
 model User {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  name       String?
-  phoneNumber          Int?   @unique
-  image          String?
-  hashedPassword String?
-  onlineStatus  Boolean
-  socketID  String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  phoneNumber      String?    @unique
+  image            String?
+  hashedPassword   String
+  onlineStatus     Boolean
+  socketID         String?
+  createdAt        DateTime   @default(now())
+  sentMessages     Messages[] @relation(name: "sent")
+  recievedMessages Messages[] @relation(name: "recieved")
 }
 
 model Messages {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  senderId            String  
-  recieverId            String 
-  timeSent      DateTime  @default(now())
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderId       String   @db.Uuid
+  sender         User     @relation(name: "sent", fields: [senderId], references: [id])
+  recieverId     String   @db.Uuid
+  reciever       User     @relation(name: "recieved", fields: [recieverId], references: [id])
+  timeSent       DateTime @default(now())
   messageContent String?
-  seenStatus  Boolean?
+  seenStatus     Boolean?
 }

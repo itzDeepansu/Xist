@@ -5,7 +5,7 @@ export async function POST(request){
     const body = await request.json()
     await prisma.user.update({
         where:{
-            phoneNumber:parseInt( body.phoneNumber)
+            phoneNumber: body.phoneNumber
         },
         data:{
             onlineStatus:false

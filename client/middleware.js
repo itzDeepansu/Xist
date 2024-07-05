@@ -7,13 +7,12 @@ export default withAuth({
   },
   callbacks: {
     authorized: ({ token }) => {
-      // If there is a token, the user is authenticated
-      return !!token;
+      return true;
     },
   },
 });
 
 // Specify the matcher to protect specific routes
 export const config = {
-  matcher: ['/'],
+  matcher: ['/','/test'],
 };

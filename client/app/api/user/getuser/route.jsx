@@ -5,7 +5,7 @@ export async function POST(request){
     const body = await request.json()
     const user = await prisma.user.findUnique({
         where:{
-            phoneNumber: parseInt(body.phoneNumber)
+            phoneNumber:body.phoneNumber
         }
     })
     if(!user) return NextResponse.json({error:"user not found"})

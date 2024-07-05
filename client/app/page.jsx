@@ -2,6 +2,9 @@
 import { useEffect, useState, useMemo } from "react";
 import ChatCard from "@/components/ChatCard";
 
+// import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "./libs/supabaseClient";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +27,7 @@ import { useSession, signOut } from "next-auth/react";
 export default function Home() {
   const router = useRouter();
   const socket = useMemo(() => io(`${process.env.BACKEND_URL}`), []);
-  console.log(`${process.env.BACKEND_URL}`);
+  console.log(process.env.BACKEND_URL);
 
   const [profile, setProfile] = useState(null);
 
@@ -35,16 +38,18 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
-  const [messageSending , setMessageSending] = useState(false);
+  const [messageSending, setMessageSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
 
   let oldDate = "";
 
   const { data: session } = useSession();
 
+  const [changes, setChanges] = useState({});
+
+  const supabase = getSupabaseClient();
   useEffect(() => {
     async function getUserData() {
-      console.log(session?.user);
       setProfile(session?.user);
       const getUsers = await axios.get("user/getusers");
       setChats(getUsers.data.users);
@@ -69,6 +74,22 @@ export default function Home() {
       });
       console.log(socket.id);
     });
+    const handleUserTableChanges = (payload) => {
+      if (payload.errors && payload.errors.length > 0) {
+        console.error("Error:", payload.errors);
+      } else {
+        setChanges(payload.new);
+      }
+    };
+
+    supabase
+      .channel("public:User")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "User" },
+        handleUserTableChanges
+      )
+      .subscribe();
     return async () => {
       socket.disconnect();
       console.log("called disconnect");
@@ -82,7 +103,38 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
+    console.log(changes);
+    if (changes) {
+      setChats(
+        chats.map((chat) => {
+          if (chat.id === changes.id) {
+            return changes;
+          } else {
+            return chat;
+          }
+        })
+      );
+      setSearchList(
+        searchList.map((chat) => {
+          if (chat.id === changes.id) {
+            return changes;
+          } else {
+            return chat;
+          }
+        })
+      );
+      if (activeChat) {
+        if (activeChat.id === changes.id) {
+          setActiveChat(changes);
+          console.log(changes.socketID);
+        }
+      }
+    }
+  }, [changes]);
+
+  useEffect(() => {
     socket.on("recieveMessage", (data) => {
+      console.log("message recieved in as :", data);
       if (activeChat?.id === data.senderId) {
         setMessageList((prev) => [data, ...prev]);
       }
@@ -90,7 +142,7 @@ export default function Home() {
     socket.on("deleteReceiveMessage", (data) => {
       setMessageList((prev) => prev.filter((item) => item.id !== data.id));
     });
-  }, [activeChat]);
+  }, [activeChat?.id]);
 
   function updateDate(dateString) {
     oldDate = getDate(dateString);
@@ -109,31 +161,33 @@ export default function Home() {
     var minutes = date.getMinutes().toString();
     return hours.concat(":", minutes);
   }
-  const handleSendMessage = async () => {
-    setMessageSending(true);
-    const msg = await axios.post("message/send", {
-      messageContent: message,
-      senderId: profile?.id,
-      recieverId: activeChat?.id,
-    });
-    setMessage(" ");
-    socket.emit("sendMessage", {
-      id: msg.data.message.id,
-      timeSent: msg.data.message.timeSent,
-      sender: profile?.socketID,
-      receiver: activeChat?.socketID,
-      senderId: profile?.id,
-      recieverId: activeChat?.id,
-      messageContent: msg.data.message.messageContent,
-    });
-    setMessageList((prev) => [
-      {
-        ...msg.data.message,
+  const handleSendMessage = async (e) => {
+    if (e.keyCode === 13 || e.type === "click") {
+      setMessageSending(true);
+      const msg = await axios.post("message/send", {
+        messageContent: message,
+        senderId: profile?.id,
+        recieverId: activeChat?.id,
+      });
+      setMessage(" ");
+      socket.emit("sendMessage", {
+        id: msg.data.message.id,
+        timeSent: msg.data.message.timeSent,
+        sender: profile?.socketID,
         receiver: activeChat?.socketID,
-      },
-      ...prev,
-    ]);
-    setMessageSending(false);
+        senderId: profile?.id,
+        recieverId: activeChat?.id,
+        messageContent: msg.data.message.messageContent,
+      });
+      setMessageList((prev) => [
+        {
+          ...msg.data.message,
+          receiver: activeChat?.socketID,
+        },
+        ...prev,
+      ]);
+      setMessageSending(false);
+    }
   };
   const triggerMessageDelete = (message) => {
     setMessageList((prev) => prev.filter((item) => item.id !== message.id));
@@ -217,7 +271,11 @@ export default function Home() {
                     key={user.id}
                     className="hover:bg-[#27272A] px-1 rounded-[5px]"
                   >
-                    <ChatCard imgurl={user.image} name={user.name} />
+                    <ChatCard
+                      imgurl={user.image}
+                      name={user.name}
+                      onlineStatus={user.onlineStatus}
+                    />
                   </div>
                 )
             )}
@@ -256,7 +314,7 @@ export default function Home() {
             ) : (
               messageList?.map((message) => (
                 <div
-                  key={nanoid()}
+                  key={message.id}
                   className={
                     message.senderId === profile?.id
                       ? "ml-auto px-4 py-2 flex gap-2 bg-[#292727] rounded-[6px]"
@@ -279,7 +337,11 @@ export default function Home() {
                         <MageDots icon="mage:dots" width="20" height="20" />
                       </PopoverTrigger>
                       <PopoverContent className="flex flex-col gap-1 bg-[#27272A] rounded-[4px] text-white">
-                        <Button variant="outline" disabled className="hover:bg-black">
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="hover:bg-black"
+                        >
                           Edit
                         </Button>
                         <Button
@@ -296,19 +358,27 @@ export default function Home() {
               ))
             )}
           </div>
-          <div className={activeChat==null ? "hidden" : "flex w-full items-center space-x-2 absolute bottom-0 p-5" }>
+          <div
+            className={
+              activeChat == null
+                ? "hidden"
+                : "flex w-full items-center space-x-2 absolute bottom-0 p-5"
+            }
+          >
             <Input
               type="text"
               placeholder="Message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => handleSendMessage(e)}
               className="rounded-[3px] border-[#27272A] border text-[#afafb5]"
             />
             <Button
               type="submit"
               variant="outline"
-              onClick={handleSendMessage}
+              onClick={(e) => handleSendMessage(e)}
               disabled={messageSending}
+              value="sendMessageButton"
               className="rounded-[3px] border-[#27272A] border text-black bg-[#FAFAFA]"
             >
               Send

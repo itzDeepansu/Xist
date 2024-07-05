@@ -18,7 +18,38 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     setSubmitting(true);
-    let res = await signIn("credentials", { ...data, redirect: false });
+    let res = await signIn("credentials", { ...data,redirect: false });
+    if (res.error) {
+      setSubmitting(false);
+      console.log(res.error);
+    } else {
+      setSubmitting(false);
+      router.push("/");
+    }
+  };
+
+  const guestLogin = async () => {
+    setSubmitting(true);
+    let res = await signIn("credentials", {
+      phoneNumber: "9499242492",
+      password: "1234567890",
+      redirect: false,
+    });
+    if (res.error) {
+      setSubmitting(false);
+      console.log(res.error);
+    } else {
+      setSubmitting(false);
+      router.push("/");
+    }
+  };
+  const guestLogin2 = async () => {
+    setSubmitting(true);
+    let res = await signIn("credentials", {
+      phoneNumber: "8439773640",
+      password: "1234567890",
+      redirect: false,
+    });
     if (res.error) {
       setSubmitting(false);
       console.log(res.error);
@@ -84,6 +115,18 @@ const Login = () => {
               className="w-full bg-white text-black hover:text-white rounded-[3px]"
             >
               Login
+            </Button>
+            <Button
+              onClick={guestLogin}
+              className="w-full bg-white text-black hover:text-white rounded-[3px]"
+            >
+              Deepansu Login
+            </Button>
+            <Button
+              onClick={guestLogin2}
+              className="w-full bg-white text-black hover:text-white rounded-[3px]"
+            >
+              Vikas Login
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">

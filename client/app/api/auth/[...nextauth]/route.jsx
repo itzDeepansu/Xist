@@ -10,34 +10,41 @@ export const authOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        phoneNumber: { label: "Phone Number", type: "number", placeholder: "1234567890" },
+        phoneNumber: {
+          label: "Phone Number",
+          type: "number",
+          placeholder: "1234567890",
+        },
         password: {
           label: "Password",
           type: "password",
         },
       },
       async authorize(credentials) {
-        const user = await prisma.user.findUnique({
-          where: {
-            phoneNumber: parseInt(credentials.phoneNumber),
-          },
-        });
-        if (!user || !user.hashedPassword) {
-          throw new Error('Wrong account') ;
-        }
-        const isMatched = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
+        try {
+          const user = await prisma.user.findMany({
+            where: {
+              phoneNumber: credentials.phoneNumber,
+            },
+          });
+          if (user.length == 0 || user[0].hashedPassword == null) {
+            throw new Error("Wrong account");
+          }
+          const isMatched = await bcrypt.compare(
+            credentials.password,
+            user[0].hashedPassword
           );
           if (!isMatched) {
-            throw new Error('Wrong password') ;
+            throw new Error("Wrong password");
+          }
+          return user[0];
+        } catch (err) {
+          console.log("not authorized");
         }
-        console.log(user);
-        return user;
       },
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: "dasdasdasd",
   session: {
     strategy: "jwt",
   },
@@ -46,12 +53,10 @@ export const authOptions = {
       if (user) {
         token.user = user;
       }
-      console.log("JWT Token:", token);
       return token;
     },
     async session({ session, token }) {
       session.user = token.user;
-      console.log("Session:", session);
       return session;
     },
   },
