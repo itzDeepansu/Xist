@@ -1,3 +1,32 @@
 @tailwind base;
   @tailwind components;
   @tailwind utilities;
+@layer base {
+  :root{
+    --primary2: 262 80% 50%;
+  }
+}
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  ::-webkit-scrollbar {
+    width: 2px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #605f5f;
+    height:10px;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}

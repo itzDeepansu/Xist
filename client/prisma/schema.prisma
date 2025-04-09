@@ -8,10 +8,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
+//datasource db {
+//  provider  = "postgresql"
+//  url       = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+//  directUrl = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+//}
 datasource db {
   provider  = "postgresql"
-  url       = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-  directUrl = "postgresql://postgres.lwoocnxvyaprawhqevsr:supabaseisthebest@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+  url       = "postgresql://postgres.kupoafdsvhvtcjbgefvo:Dps@54321@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+  directUrl = "postgresql://postgres.kupoafdsvhvtcjbgefvo:Dps@54321@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
 }
 
 model User {

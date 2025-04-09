@@ -18,6 +18,7 @@ module.exports = {
     },
     extend: {
       colors: {
+        primarysecond: "hsl(var(--primary2))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -70,6 +71,10 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      }, fontFamily: {
+        bebas: ["var(--font-bebas)"],
+        jetbr: ["var(--font-jetbrainsmono)"],
+        dancing: ["var(--font-dancingscript)"],
       },
     },
   },

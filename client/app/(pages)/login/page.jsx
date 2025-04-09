@@ -31,7 +31,7 @@ const Login = () => {
   const guestLogin = async () => {
     setSubmitting(true);
     let res = await signIn("credentials", {
-      phoneNumber: "9499242492",
+      phoneNumber: "1234567890",
       password: "1234567890",
       redirect: false,
     });
@@ -46,8 +46,8 @@ const Login = () => {
   const guestLogin2 = async () => {
     setSubmitting(true);
     let res = await signIn("credentials", {
-      phoneNumber: "8439773640",
-      password: "1234567890",
+      phoneNumber: "0987654321",
+      password: "0987654321",
       redirect: false,
     });
     if (res.error) {

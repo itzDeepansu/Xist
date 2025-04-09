@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "./libs/AuthProvider";
+import { Bebas_Neue, JetBrains_Mono, Dancing_Script } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -10,12 +11,17 @@ export const metadata = {
     icon: '/favicon.ico',
   },
 };
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: "300",
+  variable: "--font-jetbrainsmono",
+});
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-     
-      <body className={inter.className}>
+      <body className={` ${jetbrainsMono.variable}`}>
+      {/* <body className={inter.className}> */}
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
