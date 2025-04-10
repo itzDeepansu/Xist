@@ -256,7 +256,34 @@ export default function Home() {
       setMessageSending(false);
     }
     else if(e.type === "click" || e.keyCode === 13 && finalImgUrl){
-      console.log("image message sent");
+      setMessageSending(true);
+      const msg = await axios.post("message/send", {
+        isImage : true,
+        imageUrl : finalImgUrl,
+        senderId: profile?.id,
+        recieverId: activeChat?.id,
+      });
+      setMessage(" ");
+      socket.emit("sendMessage", {
+        id: msg.data.message.id,
+        timeSent: msg.data.message.timeSent,
+        sender: session?.user.phoneNumber,
+        receiver: activeChat?.phoneNumber,
+        senderId: profile?.id,
+        recieverId: activeChat?.id,
+        isImage : true,
+        imageUrl: msg.data.message.imageUrl,
+      });
+      setMessageList((prev) => [
+        {
+          ...msg.data.message,
+          receiver: activeChat?.socketID,
+        },
+        ...prev,
+      ]);
+      setMessageSending(false);
+      setFinalImgUrl("");
+      setImageUrl("");
     }
   };
   const triggerMessageDelete = (message) => {
@@ -400,7 +427,7 @@ export default function Home() {
                       {updateDate(message.timeSent)}
                     </div>
                   )} */}
-                  {message.messageContent}
+                  {message.imageUrl ? <img height={"100px"} width={"100px"} src={message.imageUrl} /> : message.messageContent}
                   {/* <div className="text-[0.625rem] mt-auto">
                     {getTime(message.timeSent)}
                   </div> */}
@@ -444,7 +471,7 @@ export default function Home() {
               <div className="bg-white h-[0.06rem] w-[60%] rotate-90 absolute"></div>
               <input type="file" className="h-full w-full opacity-0"/>
               </label> */}
-            <div className="flex justify-center items-center invert h-8 w-12">
+            <div className="flex justify-center items-center invert h-8 w-12 overflow-hidden">
               <Upload
                 name="avatar"
                 listType="picture-circle"
@@ -452,6 +479,7 @@ export default function Home() {
                 showUploadList={false}
                 customRequest={handleUpload}
                 onChange={handleChange}
+                accept="image/*"
               >
                 {imageUrl ? (
                   <img

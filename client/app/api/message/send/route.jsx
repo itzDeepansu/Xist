@@ -9,7 +9,9 @@ export async function POST(request) {
                 messageContent: body.messageContent,
                 senderId: body.senderId,
                 recieverId: body.recieverId,
-                seenStatus:false
+                seenStatus:false,
+                isImage : body?.isImage,
+                imageUrl : body?.imageUrl
             },
         });
     return NextResponse.json({message});

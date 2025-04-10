@@ -34,6 +34,8 @@ model User {
 
 model Messages {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  isImage        Boolean? @default(false)
+  imageUrl       String?
   senderId       String   @db.Uuid
   sender         User     @relation(name: "sent", fields: [senderId], references: [id])
   recieverId     String   @db.Uuid
