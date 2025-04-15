@@ -2,6 +2,9 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+"prisma": {
+  "schema": "prisma/schema.prisma"
+},
   "scripts": {
     "dev": "next dev -p 5173",
     "build": "prisma generate && next build",
@@ -34,6 +37,7 @@
     "react-dom": "^18",
     "react-hook-form": "^7.52.0",
     "react-spinners": "^0.14.1",
+    "simple-peer": "^9.11.1",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "tailwind-merge": "^2.3.0",

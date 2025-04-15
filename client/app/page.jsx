@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo, useRef, useLayoutEffect } from "react";
 import ChatCard from "@/components/ChatCard";
+import VideoCall from "./(pages)/VideoCall/page";
 
 // import { createClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "./libs/supabaseClient";
@@ -513,6 +514,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      <VideoCall socket={socket} userPhoneNumber={session?.user.phoneNumber} toPhoneNumber={activeChat?.phoneNumber}/>
     </main>
   );
 }
