@@ -16,13 +16,34 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const [calling, setCalling] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
-  const [callStartTime, setCallStartTime] = useState(null);
   const [callDuration, setCallDuration] = useState("00:00");
 
   const myVideo = useRef();
   const userVideo = useRef();
   const connectionRef = useRef();
   const timerIntervalRef = useRef();
+
+  // Helper to initialize a new media stream.
+  const initializeStream = async () => {
+    // Always request a new stream if the current one is null.
+    try {
+      const currentStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setStream(currentStream);
+      if (myVideo.current) {
+        myVideo.current.srcObject = currentStream;
+      }
+      // Reinitialize toggle states in case they were changed in a previous call.
+      setAudioEnabled(true);
+      setVideoEnabled(true);
+      return currentStream;
+    } catch (err) {
+      console.error("Error accessing media devices:", err);
+      return null;
+    }
+  };
 
   const notify = (fromUser) =>
     toast.custom((t) => (
@@ -72,14 +93,13 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     ));
 
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((currentStream) => {
-        setStream(currentStream);
-        if (myVideo.current) {
-          myVideo.current.srcObject = currentStream;
-        }
-      });
+    // On first mount, initialize stream.
+    (async () => {
+      const currentStream = await initializeStream();
+      if (!currentStream) {
+        toast.error("Unable to access media devices.");
+      }
+    })();
 
     socket.on("receive-call", (data) => {
       setReceivingCall(true);
@@ -106,9 +126,8 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
 
   useEffect(() => {
     if (callAccepted) {
+      // Start call timer once the call is accepted.
       const start = Date.now();
-      setCallStartTime(start);
-
       timerIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - start) / 1000);
         const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
@@ -121,11 +140,15 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     }
   }, [callAccepted]);
 
-  const callUser = (toPhone) => {
+  // Initiates a call by ensuring a fresh stream then creating a new Peer.
+  const callUser = async (toPhone) => {
+    const currentStream = await initializeStream();
+    if (!currentStream) return;
+
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      stream: stream,
+      stream: currentStream,
     });
 
     peer.on("signal", (data) => {
@@ -156,13 +179,17 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     connectionRef.current = peer;
   };
 
-  const answerCall = () => {
+  // Answers a call by ensuring a fresh stream then creating a new Peer.
+  const answerCall = async () => {
+    const currentStream = await initializeStream();
+    if (!currentStream) return;
+
     setCallAccepted(true);
 
     const peer = new Peer({
       initiator: false,
       trickle: false,
-      stream: stream,
+      stream: currentStream,
     });
 
     peer.on("signal", (data) => {
@@ -187,12 +214,20 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   };
 
   const rejectCall = () => {
-    socket.emit("reject-call", { to: callerPhone });
+    // Use callerPhone if available; otherwise, use toPhoneNumber
+    const targetPhone = callerPhone || toPhoneNumber;
+    if (targetPhone) {
+      socket.emit("reject-call", { to: targetPhone });
+    }
     endCall();
   };
 
+  // End the call and reset all relevant states, video elements, and toggle states.
   const endCall = () => {
-    if (connectionRef.current) connectionRef.current.destroy();
+    if (connectionRef.current) {
+      connectionRef.current.destroy();
+      connectionRef.current = null;
+    }
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
@@ -201,10 +236,15 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     setCallAccepted(false);
     setCalling(false);
     setCallerSignal(null);
-    setCallerPhone(null);
+    setCallerPhone("");
     setStream(null);
+    setAudioEnabled(true);
+    setVideoEnabled(true);
     clearInterval(timerIntervalRef.current);
     setCallDuration("00:00");
+
+    if (myVideo.current) myVideo.current.srcObject = null;
+    if (userVideo.current) userVideo.current.srcObject = null;
   };
 
   const toggleAudio = () => {
@@ -229,17 +269,14 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     return (
       <div
         className={
-          toPhoneNumber == undefined
+          toPhoneNumber === undefined
             ? "hidden"
             : "flex gap-4 justify-center items-center"
         }
       >
         <PiPhoneCall
           className="w-7 h-7 hover:cursor-pointer"
-          onClick={() => {
-            callUser(toPhoneNumber);
-            toggleVideo();
-          }}
+          onClick={() => callUser(toPhoneNumber)}
         />
         <MdOutlineVideoCall
           className="w-8 h-8 hover:cursor-pointer"
@@ -258,7 +295,6 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
         playsInline
         className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg"
       />
-
       {/* Local Video */}
       <video
         ref={myVideo}
@@ -267,9 +303,8 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
         playsInline
         className="max-w-[20vw] max-h-[20vh] w-auto h-auto object-contain border border-white rounded-lg fixed bottom-4 left-4"
       />
-
-      {/* Buttons */}
-      <div className="flex gap-4 fixed bottom-6 z-20 backdrop-blur-md bg-white/30 p-6 items-center rounded-xl shadow-lg">
+      {/* Control Buttons & Timer */}
+      <div className="flex gap-4 fixed bottom-6 z-20 backdrop-blur-md bg-black/30 p-6 items-center rounded-xl shadow-lg">
         <PiPhoneCall
           className="hover:cursor-pointer w-8 h-8 text-red-600"
           onClick={rejectCall}
