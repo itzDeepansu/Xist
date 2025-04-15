@@ -85,9 +85,13 @@ export default function Home() {
     }
   };
   const uploadButton = (
-    <button style={{ border: 0, background: "none" }} className="h-10" type="button">
+    <button
+      style={{ border: 0, background: "none" }}
+      className="h-10"
+      type="button"
+    >
       {loading ? <LoadingOutlined /> : <PlusOutlined />}
-      <div >Upload</div>
+      <div>Upload</div>
     </button>
   );
 
@@ -255,12 +259,11 @@ export default function Home() {
         ...prev,
       ]);
       setMessageSending(false);
-    }
-    else if(e.type === "click" || e.keyCode === 13 && finalImgUrl){
+    } else if (e.type === "click" || (e.keyCode === 13 && finalImgUrl)) {
       setMessageSending(true);
       const msg = await axios.post("message/send", {
-        isImage : true,
-        imageUrl : finalImgUrl,
+        isImage: true,
+        imageUrl: finalImgUrl,
         senderId: profile?.id,
         recieverId: activeChat?.id,
       });
@@ -272,7 +275,7 @@ export default function Home() {
         receiver: activeChat?.phoneNumber,
         senderId: profile?.id,
         recieverId: activeChat?.id,
-        isImage : true,
+        isImage: true,
         imageUrl: msg.data.message.imageUrl,
       });
       setMessageList((prev) => [
@@ -319,7 +322,7 @@ export default function Home() {
   };
   //bg-27272a
   return (
-    <main className="flex flex-col bg-[#171717] text-[#FAFAFA]">
+    <main className="flex flex-col bg-[#171717] text-[#FAFAFA] relative">
       <div className="h-[10vh] flex flex-row">
         <div className="w-1/5 flex flex-row items-center gap-5 border-[#5d5d64] border-b border-r px-3">
           <img
@@ -344,12 +347,19 @@ export default function Home() {
                   : "hidden"
               }
             ></div>
-            <Button
-              className="absolute right-4 border-[#5d5d64] border h-8 rounded-[3px] hover:bg-white hover:text-black"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-            >
-              Logout
-            </Button>
+            <div className="absolute right-4 flex gap-8">
+              <VideoCall
+                socket={socket}
+                userPhoneNumber={session?.user.phoneNumber}
+                toPhoneNumber={activeChat?.phoneNumber}
+              />
+              <Button
+                className="border-[#5d5d64] border h-8 rounded-[3px] hover:bg-white hover:text-black"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -428,7 +438,15 @@ export default function Home() {
                       {updateDate(message.timeSent)}
                     </div>
                   )} */}
-                  {message.imageUrl ? <img height={"100px"} width={"100px"} src={message.imageUrl} /> : message.messageContent}
+                  {message.imageUrl ? (
+                    <img
+                      height={"100px"}
+                      width={"100px"}
+                      src={message.imageUrl}
+                    />
+                  ) : (
+                    message.messageContent
+                  )}
                   {/* <div className="text-[0.625rem] mt-auto">
                     {getTime(message.timeSent)}
                   </div> */}
@@ -514,7 +532,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <VideoCall socket={socket} userPhoneNumber={session?.user.phoneNumber} toPhoneNumber={activeChat?.phoneNumber}/>
     </main>
   );
 }

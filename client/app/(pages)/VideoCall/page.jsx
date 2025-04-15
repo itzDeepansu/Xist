@@ -1,6 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
+import { PiPhoneCall } from "react-icons/pi";
+import { MdOutlineVideoCall } from "react-icons/md";
+import { BiVolumeMute } from "react-icons/bi";
+import { CiVideoOff } from "react-icons/ci";
+import toast from "react-hot-toast";
 
 export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const [stream, setStream] = useState(null);
@@ -9,13 +14,64 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const [callerSignal, setCallerSignal] = useState(null);
   const [callAccepted, setCallAccepted] = useState(false);
   const [calling, setCalling] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [callStartTime, setCallStartTime] = useState(null);
+  const [callDuration, setCallDuration] = useState("00:00");
 
   const myVideo = useRef();
   const userVideo = useRef();
   const connectionRef = useRef();
+  const timerIntervalRef = useRef();
+
+  const notify = (fromUser) =>
+    toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-lg w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+      >
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <img
+                className="h-10 w-10 rounded-full"
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixqx=6GHAjsWpt9&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.2&w=160&h=160&q=80"
+                alt=""
+              />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                Incoming Call!
+              </p>
+              <p className="mt-1 text-sm text-gray-500">{fromUser}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex border-l border-gray-200 justify-center items-center">
+          <PiPhoneCall
+            className="h-[60%] w-[60%] cursor-pointer"
+            onClick={() => {
+              toast.dismiss(t.id);
+              answerCall();
+            }}
+          />
+        </div>
+        <div className="flex border-l border-gray-200">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              rejectCall();
+            }}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-600 hover:text-red-500"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    ));
 
   useEffect(() => {
-    // Get media stream
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((currentStream) => {
@@ -25,25 +81,45 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
         }
       });
 
-    // Receive an incoming call
     socket.on("receive-call", (data) => {
       setReceivingCall(true);
       setCallerPhone(data.from);
       setCallerSignal(data.signal);
     });
 
-    // Handle call being rejected
     socket.on("call-rejected", () => {
-      setCalling(false);
-      setCallAccepted(false);
-      alert("Call was rejected");
+      toast.error("Call Ended/Rejected");
+      endCall();
     });
 
-    // Clean up on unmount
     return () => {
       socket.disconnect();
+      clearInterval(timerIntervalRef.current);
     };
-  }, [socket, userPhoneNumber]);
+  }, [socket]);
+
+  useEffect(() => {
+    if (callerSignal && receivingCall && callerPhone) {
+      notify(callerPhone);
+    }
+  }, [callerSignal]);
+
+  useEffect(() => {
+    if (callAccepted) {
+      const start = Date.now();
+      setCallStartTime(start);
+
+      timerIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
+        const seconds = String(elapsed % 60).padStart(2, "0");
+        setCallDuration(`${minutes}:${seconds}`);
+      }, 1000);
+    } else {
+      clearInterval(timerIntervalRef.current);
+      setCallDuration("00:00");
+    }
+  }, [callAccepted]);
 
   const callUser = (toPhone) => {
     const peer = new Peer({
@@ -71,7 +147,6 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       console.error("Peer error:", err);
     });
 
-    // Avoid duplicate listeners
     socket.off("call-answered");
     socket.on("call-answered", (data) => {
       setCallAccepted(true);
@@ -98,7 +173,6 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     });
 
     peer.on("stream", (remoteStream) => {
-      console.log("Received remote stream", remoteStream);
       if (userVideo.current) {
         userVideo.current.srcObject = remoteStream;
       }
@@ -109,75 +183,110 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     });
 
     peer.signal(callerSignal);
-
     connectionRef.current = peer;
   };
 
   const rejectCall = () => {
-    socket.emit("reject-call", {
-      to: callerPhone,
-    });
-    setReceivingCall(false);
-    setCallAccepted(false);
+    socket.emit("reject-call", { to: callerPhone });
+    endCall();
   };
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">WebRTC Video Call</h1>
+  const endCall = () => {
+    if (connectionRef.current) connectionRef.current.destroy();
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
 
-      <div className="flex gap-6 mb-6">
-        <div className="flex flex-col items-center">
-          <p className="mb-2">My Video</p>
-          <video
-            ref={myVideo}
-            autoPlay
-            muted
-            playsInline
-            className="w-80 h-60 border rounded bg-black"
-          />
-        </div>
+    setReceivingCall(false);
+    setCallAccepted(false);
+    setCalling(false);
+    setCallerSignal(null);
+    setCallerPhone(null);
+    setStream(null);
+    clearInterval(timerIntervalRef.current);
+    setCallDuration("00:00");
+  };
 
-        <div className="flex flex-col items-center">
-          <p className="mb-2">User Video</p>
-          <video
-            ref={userVideo}
-            autoPlay
-            playsInline
-            className="w-80 h-60 border rounded bg-black"
-          />
-        </div>
-      </div>
+  const toggleAudio = () => {
+    if (stream) {
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+        setAudioEnabled(track.enabled);
+      });
+    }
+  };
 
-      <div className="flex gap-4">
-        <button
-          className={`${
-            callAccepted ? "bg-red-500" : "bg-blue-400"
-          } text-white px-4 py-2 rounded`}
-          disabled={calling}
+  const toggleVideo = () => {
+    if (stream) {
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+        setVideoEnabled(track.enabled);
+      });
+    }
+  };
+
+  if (!calling && !callAccepted) {
+    return (
+      <div
+        className={
+          toPhoneNumber == undefined
+            ? "hidden"
+            : "flex gap-4 justify-center items-center"
+        }
+      >
+        <PiPhoneCall
+          className="w-7 h-7 hover:cursor-pointer"
+          onClick={() => {
+            callUser(toPhoneNumber);
+            toggleVideo();
+          }}
+        />
+        <MdOutlineVideoCall
+          className="w-8 h-8 hover:cursor-pointer"
           onClick={() => callUser(toPhoneNumber)}
-        >
-          Call {toPhoneNumber}
-        </button>
+        />
+      </div>
+    );
+  }
 
-        {receivingCall && !callAccepted && (
-          <div className="flex gap-4 items-center">
-            <p className="text-gray-800">
-              Incoming call from <strong>{callerPhone}</strong>
-            </p>
-            <button
-              className="bg-green-500 text-white px-4 py-2 rounded"
-              onClick={() => answerCall()}
-            >
-              Answer
-            </button>
-            <button
-              className="bg-red-500 text-white px-4 py-2 rounded"
-              onClick={rejectCall}
-            >
-              Reject
-            </button>
-          </div>
-        )}
+  return (
+    <div className="fixed inset-0 z-10 bg-black flex flex-col justify-center items-center">
+      {/* Remote Video */}
+      <video
+        ref={userVideo}
+        autoPlay
+        playsInline
+        className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg"
+      />
+
+      {/* Local Video */}
+      <video
+        ref={myVideo}
+        autoPlay
+        muted
+        playsInline
+        className="max-w-[20vw] max-h-[20vh] w-auto h-auto object-contain border border-white rounded-lg fixed bottom-4 left-4"
+      />
+
+      {/* Buttons */}
+      <div className="flex gap-4 fixed bottom-6 z-20 backdrop-blur-md bg-white/30 p-6 items-center rounded-xl shadow-lg">
+        <PiPhoneCall
+          className="hover:cursor-pointer w-8 h-8 text-red-600"
+          onClick={rejectCall}
+        />
+        <BiVolumeMute
+          className={`hover:cursor-pointer w-8 h-8 ${
+            audioEnabled ? "text-green-500" : "text-red-500"
+          }`}
+          onClick={toggleAudio}
+        />
+        <CiVideoOff
+          className={`hover:cursor-pointer w-8 h-8 ${
+            videoEnabled ? "text-green-500" : "text-red-500"
+          }`}
+          onClick={toggleVideo}
+        />
+        <span className="text-white font-mono text-sm">{callDuration}</span>
       </div>
     </div>
   );
