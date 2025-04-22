@@ -13,7 +13,7 @@ const ChatCard = ({ imgurl, name, onlineStatus }) => {
         ></div>
         <img src={imgurl} className="rounded-full h-14 w-14"/>
       </div>
-      <div className="hidden lg:block">{name}</div>
+      <div>{name}</div>
     </div>
   );
 };

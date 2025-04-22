@@ -68,7 +68,7 @@ const Login = () => {
   }
 
   return (
-    <div className="w-full min-h-[100dvh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
+    <div className="w-screen min-h-[100dvh] flex flex-col-reverse lg:flex-row bg-[#171717] text-white justify-center items-center">
       <div className="flex items-center justify-center py-12">
         <form
           onSubmit={handleSubmit(onSubmit)}

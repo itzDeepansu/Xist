@@ -14,7 +14,7 @@ import { Input as AntInput } from "antd";
 import axios from "@/features/axios";
 import { io } from "socket.io-client";
 
-import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
+import { LoadingOutlined, PlusOutlined, MenuOutlined  } from "@ant-design/icons";
 import { Upload } from "antd";
 
 import { useRouter } from "next/navigation";
@@ -324,14 +324,61 @@ export default function Home() {
   return (
     <main className="flex flex-col bg-[#171717] text-[#FAFAFA] relative">
       <div className="h-[10vh] flex flex-row">
-        <div className="w-1/5 flex flex-row items-center gap-5 border-[#5d5d64] border-b border-r px-3">
+        <div className="hidden w-1/5 md:flex flex-row items-center gap-5 border-[#5d5d64] border-b border-r px-3">
           <img
             src={profile?.image}
             className="rounded-full h-14 w-14 object-cover bg-center"
           />
           <span className="hidden lg:block">{profile?.name}</span>
         </div>
-        <div className="w-4/5 border-[#5d5d64] border-b px-2">
+        <div className="w-full md:w-4/5 border-[#5d5d64] border-b px-2 flex">
+          <Popover className="md:hidden">
+            <PopoverTrigger className="md:hidden">
+              <Button variant="outline" className="m-2">
+                <MenuOutlined />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex flex-col w-screen h-[90dvh] bg-[#171717] text-white border-none">
+              <div className="h-[10vh] flex items-center px-4 gap-4 border-b border-[#5d5d64]">
+                <img
+                  src={profile?.image}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+                <span className="font-semibold">{profile?.name}</span>
+                 <Button
+                className="border-[#5d5d64] border h-8 ml-auto rounded-[3px] hover:bg-white hover:text-black"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                Logout
+              </Button>
+              </div>
+              <div className="flex flex-col px-2 py-2">
+                <Input
+                  placeholder="Search"
+                  onChange={handleInputChange}
+                  className="mb-2 h-10 border-[#5d5d64] rounded"
+                />
+                <ScrollArea className="h-80">
+                  {searchList.map(
+                    (u) =>
+                      u.id !== profile?.id && (
+                        <div
+                          key={u.id}
+                          onClick={() => handleActiveChatSet(u)}
+                          className="hover:bg-[#292727] p-1 rounded"
+                        >
+                          <ChatCard
+                            imgurl={u.image}
+                            name={u.name}
+                            onlineStatus={u.onlineStatus}
+                          />
+                        </div>
+                      )
+                  )}
+                </ScrollArea>
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className="w-full h-[10vh] flex flex-row items-center relative gap-5 transition-all">
             <img
               src={activeChat?.image}
@@ -353,18 +400,18 @@ export default function Home() {
                 userPhoneNumber={session?.user.phoneNumber}
                 toPhoneNumber={activeChat?.phoneNumber}
               />
-              <Button
+              {/* <Button
                 className="border-[#5d5d64] border h-8 rounded-[3px] hover:bg-white hover:text-black"
                 onClick={() => signOut({ callbackUrl: "/login" })}
               >
                 Logout
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
       </div>
       <div className="flex flex-row">
-        <div className="flex flex-col h-[90dvh] w-1/5 px-2 border-[#5d5d64] border-r">
+        <div className="hidden md:flex flex-col h-[90dvh] w-1/5 px-2 border-[#5d5d64] border-r">
           <Input
             onChange={(e) => handleInputChange(e)}
             placeholder="Search"
@@ -389,7 +436,7 @@ export default function Home() {
             )}
           </ScrollArea>
         </div>
-        <div className=" w-4/5 h-[90dvh] flex flex-col relative bg-opacity-15">
+        <div className="w-full  md:w-4/5 h-[90dvh] flex flex-col relative bg-opacity-15">
           <div
             ref={scrollRef}
             className="w-full h-[80dvh] flex flex-col-reverse overflow-y-scroll relative gap-2 px-4 pt-2 overflow-hidden bg-[url(/bgspr2.jpg)] bg-blend-overlay"

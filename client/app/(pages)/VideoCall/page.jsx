@@ -23,26 +23,28 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const connectionRef = useRef();
   const timerIntervalRef = useRef();
 
-  // Helper to initialize a new media stream.
   const initializeStream = async () => {
     // Always request a new stream if the current one is null.
-    try {
-      const currentStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      setStream(currentStream);
-      if (myVideo.current) {
-        myVideo.current.srcObject = currentStream;
+    if (!stream) {
+      try {
+        const currentStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        setStream(currentStream);
+        if (myVideo.current) {
+          myVideo.current.srcObject = currentStream;
+        }
+        // Reinitialize toggle states in case they were changed in a previous call.
+        setAudioEnabled(true);
+        setVideoEnabled(true);
+        return currentStream;
+      } catch (err) {
+        console.error("Error accessing media devices:", err);
+        return null;
       }
-      // Reinitialize toggle states in case they were changed in a previous call.
-      setAudioEnabled(true);
-      setVideoEnabled(true);
-      return currentStream;
-    } catch (err) {
-      console.error("Error accessing media devices:", err);
-      return null;
     }
+    return stream;
   };
 
   const notify = (fromUser) =>
@@ -62,9 +64,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
               />
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">
-                Incoming Call!
-              </p>
+              <p className="text-sm font-medium text-gray-900">Incoming Call!</p>
               <p className="mt-1 text-sm text-gray-500">{fromUser}</p>
             </div>
           </div>
@@ -214,13 +214,13 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   };
 
   const rejectCall = () => {
-    // Use callerPhone if available; otherwise, use toPhoneNumber
-    const targetPhone = callerPhone || toPhoneNumber;
-    if (targetPhone) {
-      socket.emit("reject-call", { to: targetPhone });
-    }
-    endCall();
-  };
+  // Use callerPhone if available; otherwise, use toPhoneNumber
+  const targetPhone = callerPhone || toPhoneNumber;
+  if (targetPhone) {
+    socket.emit("reject-call", { to: targetPhone });
+  }
+  endCall();
+};
 
   // End the call and reset all relevant states, video elements, and toggle states.
   const endCall = () => {
