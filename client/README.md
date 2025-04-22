@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Xist
 
-## Getting Started
+**Xist** is a next‑generation, real‑time messaging and communication application built with Next.js, React, Socket.IO, Simple‑Peer and backed by Express, Prisma, and Supabase. It provides secure user authentication, real‑time text messaging, file and media sharing, and peer‑to‑peer audio/video calling—delivered in a responsive, modern UI powered by ShadCN, TailwindCSS, and Ant Design Icons.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- 🔐 **Authentication**  
+  Secure sign‑in/up flows using NextAuth.js with support for multiple OAuth providers and email/password.  
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- 💬 **Real‑time Chat**  
+  Bi‑directional, low‑latency messaging with Socket.IO:  
+  - One‑to‑one and group conversations  
+  - Typing indicators & read receipts  
+  - Online/offline presence  
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- 📁 **File & Media Sharing**  
+  Send images, videos, documents and other files:  
+  - Client‑side previews  
+  - Drag‑and‑drop or file picker  
+  - Secure, expiring upload URLs via Supabase Storage  
 
-## Learn More
+- 📹 **Peer‑to‑Peer Audio & Video Calls**  
+  Simple‑Peer + WebRTC for direct media streams:  
+  - Audio calls with mute/unmute, volume indicators  
+  - Video calls with start/stop camera, picture‑in‑picture  
+  - Call timer, call accept/decline UI  
+  - (Planned) screen sharing & group calls  
 
-To learn more about Next.js, take a look at the following resources:
+- 🔧 **Call & Connection Management**  
+  - Automatic reconnection handling  
+  - Call history stored in database  
+  - Busy/Do Not Disturb status  
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 📱 **Responsive UI**  
+  - TailwindCSS + ShadCN component library  
+  - Ant Design Icons for consistency  
+  - Dark mode & light mode toggle  
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- ☁️ **Scalable Backend**  
+  - Express‑based WebSocket server deployed on Render  
+  - Prisma ORM over PostgreSQL (Supabase)  
+  - Stateless API routes in Next.js  
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+| Layer              | Technology                |
+| ------------------ | ------------------------- |
+| **Framework**      | Next.js 13                |
+| **UI**             | React, TailwindCSS, ShadCN, Ant Design Icons |
+| **Real‑Time Sync** | Socket.IO                 |
+| **P2P Media**      | Simple‑Peer (WebRTC)      |
+| **Auth**           | NextAuth.js               |
+| **Backend**        | Express.js                |
+| **Database**       | PostgreSQL (Supabase)     |
+| **ORM**            | Prisma                    |
+| **Storage**        | Supabase Storage          |
+| **Deployment**     | Vercel (frontend), Render (backend) |
+
+---

@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 
 export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const [stream, setStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   const [receivingCall, setReceivingCall] = useState(false);
   const [callerPhone, setCallerPhone] = useState("");
   const [callerSignal, setCallerSignal] = useState(null);
@@ -23,111 +24,89 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const connectionRef = useRef();
   const timerIntervalRef = useRef();
 
-  const initializeStream = async () => {
-    // Always request a new stream if the current one is null.
-    if (!stream) {
-      try {
-        const currentStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        setStream(currentStream);
-        if (myVideo.current) {
-          myVideo.current.srcObject = currentStream;
-        }
-        // Reinitialize toggle states in case they were changed in a previous call.
-        setAudioEnabled(true);
-        setVideoEnabled(true);
-        return currentStream;
-      } catch (err) {
-        console.error("Error accessing media devices:", err);
-        return null;
-      }
+  // Completely reset stream when call ends
+  const cleanupStream = () => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
     }
-    return stream;
+    if (myVideo.current) myVideo.current.srcObject = null;
+    if (userVideo.current) userVideo.current.srcObject = null;
+    setRemoteStream(null);
   };
 
-  const notify = (fromUser) =>
-    toast.custom((t) => (
-      <div
-        className={`${
-          t.visible ? "animate-enter" : "animate-leave"
-        } max-w-lg w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
-      >
-        <div className="flex-1 w-0 p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 pt-0.5">
-              <img
-                className="h-10 w-10 rounded-full"
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixqx=6GHAjsWpt9&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.2&w=160&h=160&q=80"
-                alt=""
-              />
-            </div>
-            <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Incoming Call!</p>
-              <p className="mt-1 text-sm text-gray-500">{fromUser}</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex border-l border-gray-200 justify-center items-center">
-          <PiPhoneCall
-            className="h-[60%] w-[60%] cursor-pointer"
-            onClick={() => {
-              toast.dismiss(t.id);
-              answerCall();
-            }}
-          />
-        </div>
-        <div className="flex border-l border-gray-200">
-          <button
-            onClick={() => {
-              toast.dismiss(t.id);
-              rejectCall();
-            }}
-            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-600 hover:text-red-500"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    ));
+  // Initialize media stream for both local and remote
+  const initializeStream = async () => {
+    cleanupStream();
+    try {
+      const currentStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setStream(currentStream);
+      return currentStream;
+    } catch (err) {
+      console.error("Error accessing media devices:", err);
+      toast.error("Could not access camera or microphone");
+      return null;
+    }
+  };
 
+  // Centralized socket listeners & initial stream setup
   useEffect(() => {
-    // On first mount, initialize stream.
+    const setupSocketListeners = () => {
+      socket.on("receive-call", (data) => {
+        console.log("Receiving call from:", data.from);
+        setReceivingCall(true);
+        setCallerPhone(data.from);
+        setCallerSignal(data.signal);
+      });
+
+      socket.on("call-rejected", () => {
+        console.log("Call was rejected");
+        toast.error("Call Ended/Rejected");
+        endCall();
+      });
+
+      socket.on("call-answered", (data) => {
+        console.log("Call was answered, processing signal");
+        setCallAccepted(true);
+        if (connectionRef.current) {
+          connectionRef.current.signal(data.signal);
+        }
+      });
+    };
+
     (async () => {
-      const currentStream = await initializeStream();
-      if (!currentStream) {
-        toast.error("Unable to access media devices.");
-      }
+      await initializeStream();
+      setupSocketListeners();
     })();
 
-    socket.on("receive-call", (data) => {
-      setReceivingCall(true);
-      setCallerPhone(data.from);
-      setCallerSignal(data.signal);
-    });
-
-    socket.on("call-rejected", () => {
-      toast.error("Call Ended/Rejected");
-      endCall();
-    });
-
     return () => {
-      socket.disconnect();
+      ["receive-call", "call-rejected", "call-answered"].forEach((evt) => {
+        socket.off(evt);
+      });
       clearInterval(timerIntervalRef.current);
+      cleanupStream();
+      if (connectionRef.current) {
+        connectionRef.current.destroy();
+        connectionRef.current = null;
+      }
     };
   }, [socket]);
 
+  // Show incoming call notification
   useEffect(() => {
     if (callerSignal && receivingCall && callerPhone) {
       notify(callerPhone);
     }
-  }, [callerSignal]);
+  }, [callerSignal, receivingCall, callerPhone]);
 
+  // Call duration timer
   useEffect(() => {
     if (callAccepted) {
-      // Start call timer once the call is accepted.
       const start = Date.now();
+      clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - start) / 1000);
         const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
@@ -140,10 +119,28 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     }
   }, [callAccepted]);
 
-  // Initiates a call by ensuring a fresh stream then creating a new Peer.
+  // Attach local stream to video element when ready
+  useEffect(() => {
+    if (stream && myVideo.current) {
+      myVideo.current.srcObject = stream;
+      myVideo.current.onloadedmetadata = () => myVideo.current.play();
+    }
+  }, [stream]);
+
+  // Attach remote stream to video element when ready
+  useEffect(() => {
+    if (remoteStream && userVideo.current) {
+      userVideo.current.srcObject = remoteStream;
+      userVideo.current.onloadedmetadata = () => userVideo.current.play();
+    }
+  }, [remoteStream]);
+
   const callUser = async (toPhone) => {
+    console.log("Initiating call to:", toPhone);
     const currentStream = await initializeStream();
     if (!currentStream) return;
+
+    setCalling(true);
 
     const peer = new Peer({
       initiator: true,
@@ -157,30 +154,28 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
         to: toPhone,
         from: userPhoneNumber,
       });
-      setCalling(true);
     });
 
-    peer.on("stream", (remoteStream) => {
-      if (userVideo.current) {
-        userVideo.current.srcObject = remoteStream;
-      }
+    peer.on("stream", (s) => {
+      console.log("Received remote stream as caller");
+      setRemoteStream(s);
     });
 
     peer.on("error", (err) => {
       console.error("Peer error:", err);
+      toast.error("Connection error");
     });
 
-    socket.off("call-answered");
-    socket.on("call-answered", (data) => {
-      setCallAccepted(true);
-      peer.signal(data.signal);
+    peer.on("close", () => {
+      console.log("Peer connection closed");
     });
 
+    if (connectionRef.current) connectionRef.current.destroy();
     connectionRef.current = peer;
   };
 
-  // Answers a call by ensuring a fresh stream then creating a new Peer.
   const answerCall = async () => {
+    console.log("Answering call from:", callerPhone);
     const currentStream = await initializeStream();
     if (!currentStream) return;
 
@@ -199,52 +194,49 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       });
     });
 
-    peer.on("stream", (remoteStream) => {
-      if (userVideo.current) {
-        userVideo.current.srcObject = remoteStream;
-      }
+    peer.on("stream", (s) => {
+      console.log("Received remote stream as answerer");
+      setRemoteStream(s);
     });
 
     peer.on("error", (err) => {
       console.error("Peer error:", err);
+      toast.error("Connection error");
+    });
+
+    peer.on("close", () => {
+      console.log("Peer connection closed");
     });
 
     peer.signal(callerSignal);
+
+    if (connectionRef.current) connectionRef.current.destroy();
     connectionRef.current = peer;
   };
 
   const rejectCall = () => {
-  // Use callerPhone if available; otherwise, use toPhoneNumber
-  const targetPhone = callerPhone || toPhoneNumber;
-  if (targetPhone) {
-    socket.emit("reject-call", { to: targetPhone });
-  }
-  endCall();
-};
+    const targetPhone = callerPhone || toPhoneNumber;
+    if (targetPhone) {
+      console.log("Rejecting call to:", targetPhone);
+      socket.emit("reject-call", { to: targetPhone });
+    }
+    endCall();
+  };
 
-  // End the call and reset all relevant states, video elements, and toggle states.
   const endCall = () => {
+    console.log("Ending call");
     if (connectionRef.current) {
       connectionRef.current.destroy();
       connectionRef.current = null;
     }
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-    }
-
+    cleanupStream();
     setReceivingCall(false);
     setCallAccepted(false);
     setCalling(false);
     setCallerSignal(null);
     setCallerPhone("");
-    setStream(null);
-    setAudioEnabled(true);
-    setVideoEnabled(true);
     clearInterval(timerIntervalRef.current);
     setCallDuration("00:00");
-
-    if (myVideo.current) myVideo.current.srcObject = null;
-    if (userVideo.current) userVideo.current.srcObject = null;
   };
 
   const toggleAudio = () => {
@@ -264,6 +256,44 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       });
     }
   };
+  const notify = (fromUser) =>
+    toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+      >
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <img
+                className="h-10 w-10 rounded-full"
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixqx=6GHAjsWpt9&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.2&w=160&h=160&q=80"
+                alt="Caller Avatar"
+              />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">Incoming Call</p>
+              <p className="mt-1 text-sm text-gray-500">From: {fromUser}</p>
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={answerCall}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+                >
+                  Answer
+                </button>
+                <button
+                  onClick={rejectCall}
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ));
 
   if (!calling && !callAccepted) {
     return (
