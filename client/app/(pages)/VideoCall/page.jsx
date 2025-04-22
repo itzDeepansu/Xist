@@ -18,6 +18,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [callDuration, setCallDuration] = useState("00:00");
+  const [audioCall, setAudioCall] = useState(false);
 
   const myVideo = useRef();
   const userVideo = useRef();
@@ -47,7 +48,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       return currentStream;
     } catch (err) {
       console.error("Error accessing media devices:", err);
-      toast.error("Could not access camera or microphone");
+      toast.error("Could not access camera or microphone", { duration: 200 });
       return null;
     }
   };
@@ -64,7 +65,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
 
       socket.on("call-rejected", () => {
         console.log("Call was rejected");
-        toast.error("Call Ended/Rejected");
+        toast.error("Call Ended/Rejected", { duration: 200 });
         endCall();
       });
 
@@ -135,8 +136,12 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     }
   }, [remoteStream]);
 
-  const callUser = async (toPhone) => {
+  const callUser = async ({toPhone, isAudio}) => {
     console.log("Initiating call to:", toPhone);
+    if (isAudio) {
+      setAudioCall(isAudio);
+      toggleVideo();
+    }
     const currentStream = await initializeStream();
     if (!currentStream) return;
 
@@ -163,7 +168,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
 
     peer.on("error", (err) => {
       console.error("Peer error:", err);
-      toast.error("Connection error");
+      toast.error("Connection error", { duration: 200 });
     });
 
     peer.on("close", () => {
@@ -174,7 +179,8 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     connectionRef.current = peer;
   };
 
-  const answerCall = async () => {
+  const answerCall = async ({ callNotification }) => {
+    toast.dismiss(callNotification);
     console.log("Answering call from:", callerPhone);
     const currentStream = await initializeStream();
     if (!currentStream) return;
@@ -201,7 +207,7 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
 
     peer.on("error", (err) => {
       console.error("Peer error:", err);
-      toast.error("Connection error");
+      toast.error("Connection error", { duration: 200 });
     });
 
     peer.on("close", () => {
@@ -214,7 +220,8 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
     connectionRef.current = peer;
   };
 
-  const rejectCall = () => {
+  const rejectCall = ({ callNotification }) => {
+    toast.dismiss(callNotification);
     const targetPhone = callerPhone || toPhoneNumber;
     if (targetPhone) {
       console.log("Rejecting call to:", targetPhone);
@@ -256,44 +263,52 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       });
     }
   };
-  const notify = (fromUser) =>
-    toast.custom((t) => (
-      <div
-        className={`${
-          t.visible ? "animate-enter" : "animate-leave"
-        } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
-      >
-        <div className="flex-1 w-0 p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 pt-0.5">
-              <img
-                className="h-10 w-10 rounded-full"
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixqx=6GHAjsWpt9&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.2&w=160&h=160&q=80"
-                alt="Caller Avatar"
-              />
-            </div>
-            <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Incoming Call</p>
-              <p className="mt-1 text-sm text-gray-500">From: {fromUser}</p>
-              <div className="mt-4 flex space-x-2">
-                <button
-                  onClick={answerCall}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
-                >
-                  Answer
-                </button>
-                <button
-                  onClick={rejectCall}
-                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
-                >
-                  Reject
-                </button>
+  const notify = (fromUser) => {
+    const callNotification = toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+        >
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <img
+                  className="h-10 w-10 rounded-full"
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixqx=6GHAjsWpt9&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.2&w=160&h=160&q=80"
+                  alt="Caller Avatar"
+                />
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Incoming Call
+                </p>
+                <p className="mt-1 text-sm text-gray-500">From: {fromUser}</p>
+                <div className="mt-4 flex space-x-2">
+                  <button
+                    onClick={() => answerCall({ callNotification })}
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+                  >
+                    Answer
+                  </button>
+                  <button
+                    onClick={() => rejectCall({ callNotification })}
+                    className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    ));
+      ),
+      {
+        duration: 8000,
+      }
+    );
+  };
 
   if (!calling && !callAccepted) {
     return (
@@ -306,11 +321,11 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
       >
         <PiPhoneCall
           className="w-7 h-7 hover:cursor-pointer"
-          onClick={() => callUser(toPhoneNumber)}
+          onClick={() => callUser({toPhone:toPhoneNumber,isAudio : true})}
         />
         <MdOutlineVideoCall
           className="w-8 h-8 hover:cursor-pointer"
-          onClick={() => callUser(toPhoneNumber)}
+          onClick={() => callUser({toPhone:toPhoneNumber, isAudio : false})}
         />
       </div>
     );
@@ -345,12 +360,14 @@ export default function VideoCall({ socket, userPhoneNumber, toPhoneNumber }) {
           }`}
           onClick={toggleAudio}
         />
-        <CiVideoOff
-          className={`hover:cursor-pointer w-8 h-8 ${
-            videoEnabled ? "text-green-500" : "text-red-500"
-          }`}
-          onClick={toggleVideo}
-        />
+        {!audioCall && (
+          <CiVideoOff
+            className={`hover:cursor-pointer w-8 h-8 ${
+              videoEnabled ? "text-green-500" : "text-red-500"
+            }`}
+            onClick={toggleVideo}
+          />
+        )}
         <span className="text-white font-mono text-sm">{callDuration}</span>
       </div>
     </div>

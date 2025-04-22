@@ -334,7 +334,7 @@ export default function Home() {
         <div className="w-full md:w-4/5 border-[#5d5d64] border-b px-2 flex">
           <Popover className="md:hidden">
             <PopoverTrigger className="md:hidden">
-              <Button variant="outline" className="m-2">
+              <Button className="m-2">
                 <MenuOutlined />
               </Button>
             </PopoverTrigger>
